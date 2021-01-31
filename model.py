@@ -31,8 +31,8 @@ def load_optimizer(args, model):
     return optimizer, scheduler
 
 
-def save_model(args, model, optimizer):
-    out = os.path.join(args.model_path, "checkpoint_{}.tar".format(args.current_epoch))
+def save_model(args, model, optimizer, wandb=None):
+    out = os.path.join(args.model_path, "checkpoint_{}.pt".format(args.current_epoch))
 
     # To save a DataParallel model generically, save the model.module.state_dict().
     # This way, you have the flexibility to load the model any way you want to any device you want.
@@ -40,3 +40,6 @@ def save_model(args, model, optimizer):
         torch.save(model.module.state_dict(), out)
     else:
         torch.save(model.state_dict(), out)
+
+    if wandb:
+        wandb.save(out)

@@ -1,4 +1,6 @@
 __pycache__
+wandb/
+tmp/
 runs/
 datasets/
 save/
