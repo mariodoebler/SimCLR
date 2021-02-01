@@ -104,7 +104,11 @@ def main(gpu, args, wandb=None):
     #                  just_use_one_input_dim=True,
     #                  no_offsets=False):
 
-    train_episodes = get_episodes(args.env, steps=args.pretraining_steps, seed=args.seed, num_processes=1, num_frame_stack=4, downsample=False, color=False, entropy_threshold=0.6, collect_mode='random_agent', train_mode='train_encoder', min_episode_length=args.batch_size, wandb=wandb, just_use_one_input_dim = False, no_offsets=True, use_extended_wrapper=True, collect_for_curl=True)
+    if "Breakout" in args.env:
+        min_episode_length = 32
+    else:
+        min_episode_length = 64 # default for mila -> just doesn't work for random Breakout...
+    train_episodes = get_episodes(args.env, steps=args.pretraining_steps, seed=args.seed, num_processes=1, num_frame_stack=4, downsample=False, color=False, entropy_threshold=0.6, collect_mode='random_agent', train_mode='train_encoder', min_episode_length=min_episode_length, wandb=wandb, just_use_one_input_dim = False, no_offsets=True, use_extended_wrapper=True, collect_for_curl=True)
     train_dataset = AtariDataset(train_episodes, transform=TransformsSimCLRAtari(width=args.image_width, height=args.image_height))
     if args.nodes > 1:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
