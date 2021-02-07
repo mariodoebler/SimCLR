@@ -1,6 +1,7 @@
 import torchvision
 import torch
 import torch.nn
+import numpy as np
 
 class TransformsSimCLR:
     """
@@ -50,7 +51,8 @@ class TransformsSimCLRAtari:
             [
                 torchvision.transforms.ToPILImage(),
                 # size: FINALE size
-                torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.9, 0.95)),
+                # torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.8, 1.0)),
+                torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(1.0, 1.0)),
                 # torchvision.transforms.RandomHorizontalFlip(),  # with 0.5 probability
                 # torchvision.transforms.RandomApply([color_jitter], p=0.8),
                 # torchvision.transforms.RandomGrayscale(p=0.2),
@@ -67,17 +69,19 @@ class TransformsSimCLRAtari:
 
     def __call__(self, x):
         assert x.shape[0] == 4
-        # framestack_im = transforms.ToPILImage()(framestack) #.convert("RGB")
-        # sample1=train_transform(transforms.ToPILImage()(x[0, :, :]).convert('L'))  # L-mode: 8bit, 1 channel
-        # sample2=train_transform(transforms.ToPILImage()(x[0, :, :]).convert('L'))  # L-mode: 8bit, 1 channel
-        # for i in arange(1,4):
-        #     torch.cat
+        
+        conv_random = np.random.random(2)
+        if conv_random[0] > 0.3:
+            sample1 =  self.random_convolution(self.train_transform(x))
+        else:
+            sample1 =  self.train_transform(x)
 
-        sample1 =  self.random_convolution(self.train_transform(x))
-        sample2 = self.random_convolution(self.train_transform(x))
-        # sample1 = self.train_transform(x)
-        # sample2 = self.train_transform(x)
+        if conv_random[1] > 0.3:
+            sample2 =  self.random_convolution(self.train_transform(x))
+        else:
+            sample2 =  self.train_transform(x)
 
+### for plotting / debugging
         # im_sample1 = sample1.squeeze()
         # im1 = im_sample1[0, :, :]
         # im_sample2 = sample2.squeeze()
