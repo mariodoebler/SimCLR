@@ -50,9 +50,8 @@ class TransformsSimCLRAtari:
         self.train_transform = torchvision.transforms.Compose(
             [
                 torchvision.transforms.ToPILImage(),
-                # size: FINALE size
                 # torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.8, 1.0)),
-                torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(1.0, 1.0)),
+                torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.85, 1.0)),
                 # torchvision.transforms.RandomHorizontalFlip(),  # with 0.5 probability
                 # torchvision.transforms.RandomApply([color_jitter], p=0.8),
                 # torchvision.transforms.RandomGrayscale(p=0.2),
@@ -101,6 +100,8 @@ class TransformsSimCLRAtari:
         random covolution in "network randomization"
 
         (imbs): B x (C x stack) x H x W, note: imgs should be normalized and torch tensor
+
+        adjusted to just pass one channel per forward-pass. finally stack the outputs together
         '''
         assert len(imgs.shape) == 3
         assert imgs.shape[0] == 4
@@ -108,21 +109,15 @@ class TransformsSimCLRAtari:
 
         img_h, img_w = imgs.shape[-2], imgs.shape[-1]
         num_stack_channel = imgs.shape[-3]
-        # num_batch = imgs.shape[0]
-        # num_trans = num_batch
-        # batch_size = int(num_batch / num_trans)
-        batch_size = 1
 
         # initialize random covolution
         rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).to(_device).requires_grad_(False)
 
-        # for trans_index in range(num_trans):
         torch.nn.init.xavier_normal_(rand_conv.weight.data)
-        # temp_imgs = imgs[trans_index * batch_size:(trans_index + 1) * batch_size]
         for i in range(num_stack_channel):
-            temp_imgs = imgs[i, :, :].unsqueeze(0).unsqueeze(0)#[1:(trans_index + 1) * batch_size]
+            temp_imgs = imgs[i, :, :].unsqueeze(0).unsqueeze(0)
 
-            # temp_imgs = temp_imgs.reshape(-1, 3, img_h, img_w)  # (batch x stack, channel, h, w)
+            # pass EACH single frame of the observation through the conv-layer
             rand_out = rand_conv(temp_imgs)
             if i == 0:
                 total_out = rand_out
