@@ -42,22 +42,36 @@ class TransformsSimCLRAtari:
     denoted x ̃i and x ̃j, which we consider as a positive pair.
     """
 
-    def __init__(self, width, height):
-        s = 1
+    def __init__(self, width, height, random_cropping):
+        # s = 1
         # color_jitter = torchvision.transforms.ColorJitter(
         #     0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s
         # )
-        self.train_transform = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.ToPILImage(),
-                # torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.8, 1.0)),
-                torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.85, 1.0)),
-                # torchvision.transforms.RandomHorizontalFlip(),  # with 0.5 probability
-                # torchvision.transforms.RandomApply([color_jitter], p=0.8),
-                # torchvision.transforms.RandomGrayscale(p=0.2),
-                torchvision.transforms.ToTensor(),
-            ]
-        )
+        self.random_cropping = random_cropping
+        if self.random_cropping:
+            self.train_transform = torchvision.transforms.Compose(
+                [
+                    torchvision.transforms.ToPILImage(),
+                    # torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.8, 1.0)),
+                    torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.85, 1.0)),
+                    # torchvision.transforms.RandomHorizontalFlip(),  # with 0.5 probability
+                    # torchvision.transforms.RandomApply([color_jitter], p=0.8),
+                    # torchvision.transforms.RandomGrayscale(p=0.2),
+                    torchvision.transforms.ToTensor(),
+                ]
+            )
+        else:
+            self.train_transform = torchvision.transforms.Compose(
+                [
+                    torchvision.transforms.ToPILImage(),
+                    # torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.8, 1.0)),
+                    # torchvision.transforms.RandomResizedCrop(size=(height, width), scale=(0.85, 1.0)),
+                    # torchvision.transforms.RandomHorizontalFlip(),  # with 0.5 probability
+                    # torchvision.transforms.RandomApply([color_jitter], p=0.8),
+                    # torchvision.transforms.RandomGrayscale(p=0.2),
+                    torchvision.transforms.ToTensor(),
+                ]
+            )
 
         self.test_transform = torchvision.transforms.Compose(
             [
@@ -75,7 +89,8 @@ class TransformsSimCLRAtari:
         else:
             sample1 =  self.train_transform(x)
 
-        if conv_random[1] > 0.3:
+        # if random cropping is NOT applied --> ensure that at least one of the transforms includes random cropping
+        if conv_random[1] > 0.3 or (not self.random_cropping and conv_random[0] <=0.3):
             sample2 =  self.random_convolution(self.train_transform(x))
         else:
             sample2 =  self.train_transform(x)
