@@ -89,35 +89,29 @@ class TransformsSimCLRAtari:
             sample2 = x.clone()
         sample1 = self.random_convolution(sample1)
         sample2 = self.random_convolution(sample2)
-        # sample1 = self.random_convolution(self.first_pad_then_random_crop(x))
-        # sample2 = self.random_convolution(self.first_pad_then_random_crop(x))
 
-        # conv_random = np.random.random(2)
-        # if conv_random[0] > 0.3:
-        #     sample1 =  self.random_convolution(self.train_transform(x))
+        # if torch.max(sample1[0, :, :]) > 1.4:
+        #     sample1_prev = sample1.clone()
         # else:
-        #     sample1 =  self.train_transform(x)
-        #
-        # # if random cropping is NOT applied --> ensure that at least one of the transforms includes random cropping
-        # if conv_random[1] > 0.3 or (not self.random_cropping and conv_random[0] <=0.3):
-        #     sample2 =  self.random_convolution(self.train_transform(x))
-        # else:
-        #     sample2 =  self.train_transform(x)
+        #     sample1_prev = None
+        sample1 = np.clip(sample1, 0, 1.)
+        sample2 = np.clip(sample2, 0, 1.)
 
 ### for plotting / debugging
-        # im_sample1 = sample1.squeeze()
-        # im1 = im_sample1[0, :, :]
-        # im_sample2 = sample2.squeeze()
-        # im2 = im_sample2[0, :, :]
-        # for i in range(1, 4):
-        #     # 3, frameestack, height, width
-        #     im1 = torch.cat((im1, im_sample1[i, :, :]), axis=-1)  # via the last axis --> width
-        #     im2 = torch.cat((im2, im_sample2[i, :, :]), axis=-1)  # via the last axis --> width
-        # im1 = torchvision.transforms.ToPILImage()(im1)
-        # im2 = torchvision.transforms.ToPILImage()(im2)
-        # random_int = np.random.randint(20)
-        # im1.save(f'/home/cathrin/MA/datadump/simclr/'+str(random_int) + '_1.png')
-        # im2.save(f'/home/cathrin/MA/datadump/simclr/'+str(random_int) + '_2.png')
+        # if sample1_prev is not None:
+        #     im_sample1 = sample1.squeeze()
+        #     im1 = im_sample1[0, :, :]
+        #     im_sample1_prev = sample1_prev.squeeze()
+        #     im2 = im_sample1_prev[0, :, :]
+        #     for i in range(1, 4):
+        #         # 3, frameestack, height, width
+        #         im1 = torch.cat((im1, im_sample1[i, :, :]), axis=-1)  # via the last axis --> width
+        #         im2 = torch.cat((im2, im_sample1_prev[i, :, :]), axis=-1)  # via the last axis --> width
+        #     im1 = torchvision.transforms.ToPILImage()(im1)
+        #     im2 = torchvision.transforms.ToPILImage()(im2)
+        #     random_int = np.random.randint(20)
+        #     im1.save(f'/home/cathrin/MA/datadump/simclr/'+str(random_int) + '_1.png')
+        #     im2.save(f'/home/cathrin/MA/datadump/simclr/'+str(random_int) + '_2.png')
         return sample1, sample2
 
     def first_pad_then_random_crop(self, img_stack):

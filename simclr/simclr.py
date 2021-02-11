@@ -3,7 +3,7 @@ import torchvision
 
 from simclr.modules.resnet_hacks import modify_resnet_model
 from simclr.modules.identity import Identity
-
+import torch
 
 class SimCLR(nn.Module):
     """
@@ -30,6 +30,9 @@ class SimCLR(nn.Module):
         )
 
     def forward(self, x_i, x_j):
+        assert torch.max(x_i) > 0.2
+        assert torch.max(x_j) < 1.01, f"max is: {torch.max(x_j)}"
+        assert torch.min(x_i) > -0.01, f"min is {torch.min(x_i)}"
         h_i = self.encoder(x_i)
         h_j = self.encoder(x_j)
 
