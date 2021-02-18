@@ -44,6 +44,9 @@ class NT_Xent(nn.Module):
         positive_samples = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
         negative_samples = sim[self.mask].reshape(N, -1)
 
+        # for batch-size 128 --> labels.shape = (256)
+        # for batch-size 128 --> logits.shape = (256, 255)
+        # for CEloss (criterion) --> "batch-size" = 256
         labels = torch.zeros(N).to(positive_samples.device).long()
         logits = torch.cat((positive_samples, negative_samples), dim=1)
         loss = self.criterion(logits, labels)

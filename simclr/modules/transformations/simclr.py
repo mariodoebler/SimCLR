@@ -80,7 +80,8 @@ class TransformsSimCLRAtari:
     def __call__(self, x):
         assert x.shape[0] == 4
 
-        x = x/255.
+        if torch.max(x) > 1.1:
+            x = x/255.
 
         if self.random_cropping:
             sample1, sample2 = self.first_pad_then_random_crop(x)
