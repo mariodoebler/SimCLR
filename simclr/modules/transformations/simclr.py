@@ -1,7 +1,8 @@
+import numpy as np
 import torchvision
 import torch
 import torch.nn
-import numpy as np
+
 
 class TransformsSimCLR:
     """
@@ -95,8 +96,8 @@ class TransformsSimCLRAtari:
         #     sample1_prev = sample1.clone()
         # else:
         #     sample1_prev = None
-        sample1 = np.clip(sample1, 0, 1.)
-        sample2 = np.clip(sample2, 0, 1.)
+        sample1 = torch.clamp(sample1, 0, 1.)
+        sample2 = torch.clamp(sample2, 0, 1.)
 
 ### for plotting / debugging
         # if sample1_prev is not None:
