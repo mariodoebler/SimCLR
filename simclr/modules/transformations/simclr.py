@@ -96,6 +96,17 @@ class TransformsSimCLRAtari:
         sample1 = self.random_convolution(sample1)
         sample2 = self.random_convolution(sample2)
 
+        mean1 = torch.mean(sample1)
+        mean2 = torch.mean(sample2)
+        if mean1 < 0.2:
+            sample1 += 0.5
+        if mean2 < 0.2:
+            sample2 += 0.5
+        if mean1 > 0.8:
+            sample1 -= 0.5
+        if mean2 > 0.8:
+            sample2 -= 0.5
+
         sample1 = torch.clamp(sample1, 0, 1.)
         sample2 = torch.clamp(sample2, 0, 1.)
 
