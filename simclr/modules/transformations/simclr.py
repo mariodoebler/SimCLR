@@ -1,5 +1,5 @@
-import torchvision
 import numpy as np
+import torchvision
 import torch
 import torch.nn
 
@@ -44,9 +44,10 @@ class TransformsSimCLRAtari:
     """
 
     def __init__(self, width, height, random_cropping):
-        self.padding = torch.nn.ReplicationPad2d((12, 12, 16, 16))
-        self.random_cropping = random_cropping
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else 'cpu')
+        self.padding = torch.nn.ReplicationPad2d((12, 12, 16, 16)).to(self.device)
+        self.random_cropping = random_cropping
+        self.rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).to(self.device).requires_grad_(False)
         # if self.random_cropping:
         #     self.train_transform = torchvision.transforms.Compose(
         #         [
@@ -132,8 +133,8 @@ class TransformsSimCLRAtari:
         obs_padded = self.padding(img_stack_dim4).squeeze(0) # dim 3 again
         c, h, w = obs_padded.shape
         # generate random int between 0 and (w-160+1)-1  !
-        w_shift = torch.randint(w - 160 + 1, size=(2,))
-        h_shift = torch.randint(h - 210 + 1, size=(2,))
+        w_shift = torch.randint(w - 160 + 1, size=(2,), device=self.device)
+        h_shift = torch.randint(h - 210 + 1, size=(2,), device=self.device)
         img_stack1 = obs_padded[:, h_shift[0]:(h_shift[0]+210), w_shift[0]:(w_shift[0]+160)]
         img_stack2 = obs_padded[:, h_shift[1]:(h_shift[1]+210), w_shift[1]:(w_shift[1]+160)]
         assert img_stack1.shape == img_stack2.shape == (4, 210, 160), f"shape is {img_stack2.shape}, input shape was: {obs_padded.shape} w: {w_shift[1]}, h: {h_shift[1]}"
@@ -154,14 +155,13 @@ class TransformsSimCLRAtari:
         num_stack_channel = imgs.shape[-3]
 
         # initialize random covolution
-        rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).to(self.device).requires_grad_(False)
 
-        torch.nn.init.xavier_normal_(rand_conv.weight.data)
+        torch.nn.init.xavier_normal_(self.rand_conv.weight.data)
         for i in range(num_stack_channel):
             temp_imgs = imgs[i, :, :].unsqueeze(0).unsqueeze(0)
 
             # pass EACH single frame of the observation through the conv-layer
-            rand_out = rand_conv(temp_imgs)
+            rand_out = self.rand_conv(temp_imgs)
             if i == 0:
                 total_out = rand_out
             else:
@@ -170,5 +170,5 @@ class TransformsSimCLRAtari:
         return total_out.squeeze()
 
     def adjust_brightness(self, x1, x2):
-        brightness_fct = torch.FloatTensor(2,).uniform_(0.92, 1.08)
-        return torchvision.transforms.functional.adjust_brightness(x1, brightness_factor=brightness_fct[0]), torchvision.transforms.functional.adjust_brightness(x2, brightness_factor=brightness_fct[1])
+        brightness_fct = torch.cuda.FloatTensor(2,).uniform_(0.92, 1.08)
+        return torchvision.transforms.functional.adjust_brightness(x1, brightness_factor=brightness_fct[0]).to(self.device), torchvision.transforms.functional.adjust_brightness(x2, brightness_factor=brightness_fct[1]).to(self.device)
