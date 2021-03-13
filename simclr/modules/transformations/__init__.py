@@ -1,1 +1,1 @@
-from .simclr import TransformsSimCLR, TransformsSimCLRAtari
+from .simclr import TransformsSimCLR, TransformsSimCLRAtari, BatchwiseTransformsSimCLRAtari
