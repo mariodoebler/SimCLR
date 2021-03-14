@@ -134,12 +134,18 @@ class BatchwiseTransformsSimCLRAtari:
         # assert len(img_stack_dim4.shape) == 4, "4 dimensions needed for replicationpad2d (implementation constraint)"
         # obs_padded = self.padding(img_stack_dim4).squeeze(0) # dim 3 again
         obs_padded = self.padding(img_stack) # .squeeze(0) # dim 3 again
-        _, c, h, w = obs_padded.shape
+        # _, c, h, w = obs_padded.shape
         # generate random int between 0 and (w-160+1)-1  !
-        w_shift = torch.randint(w - 160 + 1, size=(self.batch_size, 2), device=self.device)
-        h_shift = torch.randint(h - 210 + 1, size=(self.batch_size, 2), device=self.device)
-        img_stack1 = obs_padded[:, :, h_shift[:, 0]:(h_shift[:, 0]+210), w_shift[:, 0]:(w_shift[:, 0]+160)]
-        img_stack2 = obs_padded[:, :, h_shift[:, 1]:(h_shift[:, 1]+210), w_shift[:, 1]:(w_shift[:, 1]+160)]
+        # w_shift = torch.randint(w - 160 + 1, size=(self.batch_size, 2))
+        # h_shift = torch.randint(h - 210 + 1, size=(self.batch_size, 2))
+        img_stack1, img_stack2 = torch.empty(img_stack.shape, device=self.device), torch.empty(img_stack.shape, device=self.device)
+        for b in range(self.batch_size):
+            i1, j1, h1, w1 = torchvision.transforms.RandomCrop.get_params(obs_padded[:, 0, :, :], output_size=(self.img_height, self.img_width))
+            i2, j2, h2, w2 = torchvision.transforms.RandomCrop.get_params(obs_padded[:, 0, :, :], output_size=(self.img_height, self.img_width))
+            img_stack1[b, :, :, :] = torchvision.transforms.functional.crop(obs_padded[b, :, :, :], i1, j1, h1, w1)
+            img_stack2[b, :, :, :] = torchvision.transforms.functional(obs_padded[b, :, :, :], i2, j2, h2, w2)
+        #     img_stack1[:, c, :, :] = obs_padded[:, c, h_shift[:, 0]:(h_shift[:, 0]+210), w_shift[:, 0]:(w_shift[:, 0]+160)]
+        #     img_stack2[:, c, :, :] = obs_padded[:, c, h_shift[:, 1]:(h_shift[:, 1]+210), w_shift[:, 1]:(w_shift[:, 1]+160)]
         assert img_stack1.shape[1:] == img_stack2.shape[1:] == (4, 210, 160), f"shape is {img_stack2.shape}, input shape was: {obs_padded.shape} w: {w_shift[1]}, h: {h_shift[1]}"
         return img_stack1, img_stack2
 
@@ -157,18 +163,19 @@ class BatchwiseTransformsSimCLRAtari:
 
         # initialize random covolution
 
-        torch.nn.init.xavier_normal_(self.rand_conv.weight.data)
-        for i in range(num_stack_channel):
-            # temp_imgs = imgs[i, :, :].unsqueeze(0).unsqueeze(0)
-            temp_imgs = imgs[:, i, :, :].unsqueeze(1)
+        for b in range(self.batch_size):
+            torch.nn.init.xavier_normal_(self.rand_conv.weight.data)
+            for i in range(self.num_channels):
+                # temp_imgs = imgs[i, :, :].unsqueeze(0).unsqueeze(0)
+                # temp_imgs = imgs[:, i, :, :].unsqueeze(1)
 
-            # pass EACH single frame of the observation through the conv-layer
-            rand_out = self.rand_conv(temp_imgs)
-            if i == 0:
-                total_out = rand_out
-            else:
-                total_out = torch.cat((total_out, rand_out), 0)
-        total_out = total_out.reshape(self.batch_size, self.num_channels, self.img_height, self.img_width)
+                # pass EACH single frame of the observation through the conv-layer
+                imgs[b, i, :, :] = self.rand_conv(imgs[b, i, :, :].unsqueeze(1)).squeeze()
+                # if i == 0:
+                #     total_out = rand_out
+                # else:
+                #     total_out = torch.cat((total_out, rand_out), 0)
+        # total_out = total_out.reshape(self.batch_size, self.num_channels, self.img_height, self.img_width)
         return total_out.squeeze()
 
     def adjust_brightness(self, x1, x2):
