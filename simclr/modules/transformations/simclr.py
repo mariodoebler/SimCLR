@@ -2,7 +2,7 @@ import kornia
 import torchvision
 import torch
 import torch.nn
-
+import numpy as np
 from termcolor import colored
 
 
@@ -143,7 +143,7 @@ class BatchwiseTransformsSimCLRAtari:
         # padded = kornia.augmentation.RandomCrop(
         #     size=(self.nr_channels, self.img_height, self.img_width))(x)
 
-        brightness_fct = torch.FloatTensor(1,).uniform_(0.9, 1.1)
+        brightness_fct = torch.FloatTensor(1,).uniform_(0.92, 1.08)
 
         x_after_brightness_conv = torchvision.transforms.functional.adjust_brightness(
             x, brightness_factor=brightness_fct.item())
@@ -217,7 +217,7 @@ class TransformsSimCLRAtari:
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else 'cpu')
         self.padding = torch.nn.ReplicationPad2d(
-            (12, 12, 16, 16)).to(self.device)
+            (30, 30, 20, 20)).to(self.device)
         self.random_cropping = random_cropping
         self.rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).to(
             self.device).requires_grad_(False)
@@ -347,5 +347,8 @@ class TransformsSimCLRAtari:
         return total_out.squeeze()
 
     def adjust_brightness(self, x1, x2):
-        brightness_fct = torch.cuda.FloatTensor(2,).uniform_(0.92, 1.08)
+        if "cuda" in self.device.type:
+            brightness_fct = torch.cuda.FloatTensor(2,).uniform_(0.92, 1.08)
+        else:
+            brightness_fct = torch.FloatTensor(2,).uniform_(0.92, 1.08)
         return torchvision.transforms.functional.adjust_brightness(x1, brightness_factor=brightness_fct[0]).to(self.device), torchvision.transforms.functional.adjust_brightness(x2, brightness_factor=brightness_fct[1]).to(self.device)
