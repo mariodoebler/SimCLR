@@ -5,7 +5,7 @@ from .gather import GatherLayer
 
 
 class NT_Xent(nn.Module):
-    def __init__(self, batch_size, temperature, world_size):
+    def __init__(self, batch_size, temperature, world_size=1):
         super(NT_Xent, self).__init__()
         self.batch_size = batch_size
         self.temperature = temperature
