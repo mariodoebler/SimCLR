@@ -308,8 +308,10 @@ class TransformsSimCLRAtari:
         obs_padded = self.padding(img_stack_dim4).squeeze(0)  # dim 3 again
         c, h, w = obs_padded.shape
         # generate random int between 0 and (w-160+1)-1  !
-        w_shift = torch.randint(w - 160 + 1, size=(2,), device=self.device)
-        h_shift = torch.randint(h - 210 + 1, size=(2,), device=self.device)
+        # , device=self.device)
+        w_shift = torch.randint(w - 160 + 1, size=(2,))
+        # , device=self.device)
+        h_shift = torch.randint(h - 210 + 1, size=(2,))
         img_stack1 = obs_padded[:, h_shift[0]:(
             h_shift[0]+210), w_shift[0]:(w_shift[0]+160)]
         img_stack2 = obs_padded[:, h_shift[1]:(
