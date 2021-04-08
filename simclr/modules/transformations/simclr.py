@@ -220,8 +220,7 @@ class TransformsSimCLRAtari:
         self.padding = torch.nn.ReplicationPad2d(
             (30, 30, 20, 20)).to(self.device)
         self.random_cropping = random_cropping
-        self.rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).to(
-            self.device).requires_grad_(False)
+        self.rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).requires_grad_(False)
         # if self.random_cropping:
         #     self.train_transform = torchvision.transforms.Compose(
         #         [
@@ -354,4 +353,4 @@ class TransformsSimCLRAtari:
         #     brightness_fct = torch.cuda.FloatTensor(2,).uniform_(0.92, 1.08)
         # else:
         brightness_fct = torch.FloatTensor(2,).uniform_(0.92, 1.08)
-        return torchvision.transforms.functional.adjust_brightness(x1, brightness_factor=brightness_fct[0]).to(self.device), torchvision.transforms.functional.adjust_brightness(x2, brightness_factor=brightness_fct[1]).to(self.device)
+        return torchvision.transforms.functional.adjust_brightness(x1, brightness_factor=brightness_fct[0]), torchvision.transforms.functional.adjust_brightness(x2, brightness_factor=brightness_fct[1])#.to(self.device)
