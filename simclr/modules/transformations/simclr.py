@@ -1,8 +1,9 @@
 import kornia
+import numpy as np
 import torchvision
 import torch
 import torch.nn
-import numpy as np
+
 from termcolor import colored
 
 
@@ -254,7 +255,7 @@ class TransformsSimCLRAtari:
         # )
 
     def __call__(self, x):
-        x = x.to(self.device)
+        # x = x.to(self.device)
         assert x.shape[0] == 4
 
         if torch.max(x) > 1.1:
