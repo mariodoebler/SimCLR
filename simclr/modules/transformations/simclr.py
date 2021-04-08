@@ -350,8 +350,8 @@ class TransformsSimCLRAtari:
         return total_out.squeeze()
 
     def adjust_brightness(self, x1, x2):
-        if "cuda" in self.device.type:
-            brightness_fct = torch.cuda.FloatTensor(2,).uniform_(0.92, 1.08)
-        else:
-            brightness_fct = torch.FloatTensor(2,).uniform_(0.92, 1.08)
+        # if "cuda" in self.device.type:
+        #     brightness_fct = torch.cuda.FloatTensor(2,).uniform_(0.92, 1.08)
+        # else:
+        brightness_fct = torch.FloatTensor(2,).uniform_(0.92, 1.08)
         return torchvision.transforms.functional.adjust_brightness(x1, brightness_factor=brightness_fct[0]).to(self.device), torchvision.transforms.functional.adjust_brightness(x2, brightness_factor=brightness_fct[1]).to(self.device)
