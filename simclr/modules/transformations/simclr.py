@@ -62,8 +62,10 @@ class BatchwiseTransformsSimCLRAtari:
             [torchvision.transforms.Lambda(lambda x: self.padding(x)),
              torchvision.transforms.Lambda(lambda x: self.random_crop(x)),
              # torchvision.transforms.Lambda(lambda x: self.random_crop(x))])
-             torchvision.transforms.Lambda(lambda x: self.random_conv_application(x))])
-        # torchvision.transforms.Lambda(lambda x: self.brightness(x))])
+             torchvision.transforms.Lambda(
+                 lambda x: self.random_conv_application(x)),
+             torchvision.transforms.Lambda(lambda x: self.brightness(x)),
+             torchvision.transforms.Lambda(lambda x: self.sanity_checks(x))])
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
         self.rand_conv = torch.nn.Conv2d(
@@ -72,41 +74,57 @@ class BatchwiseTransformsSimCLRAtari:
     def __call__(self, x):
         return self.transforms(x)
 
-    def pad_randomcrop_conv_brightness(self, x):
-        padded = self.padding(x)
-        x = kornia.augmentation.RandomCrop(
-            size=(self.img_height, self.img_width))(padded)
-        for b in range(self.batch_size):
-            # i, j, h, w = torchvision.transforms.RandomCrop.get_params(
-            #     self.sample, output_size=(self.img_height, self.img_width))
-            # im1 = torchvision.transforms.ToPILImage()(x[b, :2, :, :].squeeze())
-            # im2 = torchvision.transforms.ToPILImage()(
-            #     x[b, 2:, :, :] .squeeze())
-            # x[b, :2, :, :] = torchvision.transforms.ToTensor()(
-            #     torchvision.transforms.functional.crop(im1, i, j, h, w)).unsqueeze(0)
-            # # pudb.set_trace()
-            # x[b, 2:, :, :] = torchvision.transforms.ToTensor()(
-            #     torchvision.transforms.functional.crop(im2, i, j, h, w)).unsqueeze(0)
-            brightness_fct = torch.FloatTensor(1,).uniform_(0.9, 1.1)
-            # brightness_fct = torch.FloatTensor(
-            temp_img = x[b, :, :, :]  # ON GPU
+    def sanity_checks(self, x):
+        diff = torch.max(x) - torch.min(x)
+        if diff < 0.15:
+            x = x * 2
+        mean_x = torch.mean(x)
+        if mean_x < 0.2:
+            x += 0.5
+        if mean_x > 0.8:
+            x -= 0.5
 
-            temp_img = temp_img.unsqueeze(1)
-            torch.nn.init.xavier_normal_(self.rand_conv.weight.data)
-            temp_img = self.rand_conv(temp_img)
+        x = torch.clamp(x, 0, 1.)
+        # sample2 = torch.clamp(sample2, 0, 1.)
+        # self.dump_batches(x, "final")
 
-            temp_img = torchvision.transforms.functional.adjust_brightness(
-                temp_img.squeeze(), brightness_factor=brightness_fct.item())
+        return x
 
-            mean_temp = torch.mean(temp_img)
-            if mean_temp < 0.15:
-                temp_img = temp_img + 0.3
-            elif mean_temp > 0.85:
-                temp_img = temp_img - 0.3
-            temp_img = torch.clamp(temp_img, 0, 1.)
-            x[b, :, :, :] = temp_img
-        # self.dump_batches(x, "finished")
-
+    # def pad_randomcrop_conv_brightness(self, x):
+    #     padded = self.padding(x)
+    #     x = kornia.augmentation.RandomCrop(
+    #         size=(self.img_height, self.img_width))(padded)
+    #     for b in range(self.batch_size):
+    #         # i, j, h, w = torchvision.transforms.RandomCrop.get_params(
+    #         #     self.sample, output_size=(self.img_height, self.img_width))
+    #         # im1 = torchvision.transforms.ToPILImage()(x[b, :2, :, :].squeeze())
+    #         # im2 = torchvision.transforms.ToPILImage()(
+    #         #     x[b, 2:, :, :] .squeeze())
+    #         # x[b, :2, :, :] = torchvision.transforms.ToTensor()(
+    #         #     torchvision.transforms.functional.crop(im1, i, j, h, w)).unsqueeze(0)
+    #         # # pudb.set_trace()
+    #         # x[b, 2:, :, :] = torchvision.transforms.ToTensor()(
+    #         #     torchvision.transforms.functional.crop(im2, i, j, h, w)).unsqueeze(0)
+    #         brightness_fct = torch.FloatTensor(1,).uniform_(0.9, 1.1)
+    #         # brightness_fct = torch.FloatTensor(
+    #         temp_img = x[b, :, :, :]  # ON GPU
+    #
+    #         temp_img = temp_img.unsqueeze(1)
+    #         torch.nn.init.xavier_normal_(self.rand_conv.weight.data)
+    #         temp_img = self.rand_conv(temp_img)
+    #
+    #         temp_img = torchvision.transforms.functional.adjust_brightness(
+    #             temp_img.squeeze(), brightness_factor=brightness_fct.item())
+    #
+    #         mean_temp = torch.mean(temp_img)
+    #         if mean_temp < 0.15:
+    #             temp_img = temp_img + 0.3
+    #         elif mean_temp > 0.85:
+    #             temp_img = temp_img - 0.3
+    #         temp_img = torch.clamp(temp_img, 0, 1.)
+    #         x[b, :, :, :] = temp_img
+    #     # self.dump_batches(x, "finished")
+    #
     def random_crop(self, x):
         # kornia.augmentation.RandomCrop().get_params(self.batch_size, (self.img_height, self.img_width))
         # x = torchvision.transforms.functional.tensor_to_image(x)
@@ -119,8 +137,8 @@ class BatchwiseTransformsSimCLRAtari:
         w_shift = torch.randint(x.shape[-1] - self.img_width + 1, size=(1,))
         h_shift = torch.randint(x.shape[-2] - self.img_height + 1, size=(1,))
         # img_stack1, img_stack2 = torch.empty(img_stack.shape, device=self.device), torch.empty(img_stack.shape, device=self.device)
-        x = x[:, :, h_shift[0]:(h_shift[0]+self.img_height),
-              w_shift[0]:(w_shift[0]+self.img_width)]
+        x = x[:, :, h_shift[0]: (h_shift[0]+self.img_height),
+              w_shift[0]: (w_shift[0]+self.img_width)]
         # x[:, c, :, :] = x[:, c, h_shift[:, 1]:(h_shift[:, 1]+210), w_shift[:, 1]:(w_shift[:, 1]+160)]
         # for b in range(self.batch_size):
         #     i1, j1, h1, w1 = torchvision.transforms.RandomCrop.get_params(obs_padded[:, 0, :, :], output_size=(self.img_height, self.img_width))
@@ -220,7 +238,8 @@ class TransformsSimCLRAtari:
         self.padding = torch.nn.ReplicationPad2d(
             (30, 30, 20, 20)).to(self.device)
         self.random_cropping = random_cropping
-        self.rand_conv = torch.nn.Conv2d(1, 1, kernel_size=3, bias=False, padding=1).requires_grad_(False)
+        self.rand_conv = torch.nn.Conv2d(
+            1, 1, kernel_size=3, bias=False, padding=1).requires_grad_(False)
         # if self.random_cropping:
         #     self.train_transform = torchvision.transforms.Compose(
         #         [
@@ -285,19 +304,23 @@ class TransformsSimCLRAtari:
         sample2 = torch.clamp(sample2, 0, 1.)
 
 # for plotting / debugging
-        # im_sample1 = sample1.squeeze()
-        # im1 = im_sample1[0, :, :]
-        # im_sample2 = sample2.squeeze()
-        # im2 = im_sample2[0, :, :]
-        # for i in range(1, 4):
-        #     # 3, frameestack, height, width
-        #     im1 = torch.cat((im1, im_sample1[i, :, :]), axis=-1)  # via the last axis --> width
-        #     im2 = torch.cat((im2, im_sample2[i, :, :]), axis=-1)  # via the last axis --> width
-        # im1 = torchvision.transforms.ToPILImage()(im1)
-        # im2 = torchvision.transforms.ToPILImage()(im2)
-        # random_int = np.random.randint(20)
-        # im1.save(f'/home/cathrin/MA/datadump/simclr/'+str(random_int) + '_1.png')
-        # im2.save(f'/home/cathrin/MA/datadump/simclr/'+str(random_int) + '_2.png')
+        im_sample1 = sample1.squeeze()
+        im1 = im_sample1[0, :, :]
+        im_sample2 = sample2.squeeze()
+        im2 = im_sample2[0, :, :]
+        for i in range(1, 4):
+            # 3, frameestack, height, width
+            # via the last axis --> width
+            im1 = torch.cat((im1, im_sample1[i, :, :]), axis=-1)
+            # via the last axis --> width
+            im2 = torch.cat((im2, im_sample2[i, :, :]), axis=-1)
+        im1 = torchvision.transforms.ToPILImage()(im1)
+        im2 = torchvision.transforms.ToPILImage()(im2)
+        random_int = np.random.randint(20)
+        im1.save(f'/home/cathrin/MA/datadump/simclr/' +
+                 str(random_int) + '_1.png')
+        im2.save(f'/home/cathrin/MA/datadump/simclr/' +
+                 str(random_int) + '_2.png')
         return sample1, sample2
 
     def first_pad_then_random_crop(self, img_stack):
@@ -311,10 +334,10 @@ class TransformsSimCLRAtari:
         w_shift = torch.randint(w - 160 + 1, size=(2,))
         # , device=self.device)
         h_shift = torch.randint(h - 210 + 1, size=(2,))
-        img_stack1 = obs_padded[:, h_shift[0]:(
-            h_shift[0]+210), w_shift[0]:(w_shift[0]+160)]
-        img_stack2 = obs_padded[:, h_shift[1]:(
-            h_shift[1]+210), w_shift[1]:(w_shift[1]+160)]
+        img_stack1 = obs_padded[:, h_shift[0]: (
+            h_shift[0]+210), w_shift[0]: (w_shift[0]+160)]
+        img_stack2 = obs_padded[:, h_shift[1]: (
+            h_shift[1]+210), w_shift[1]: (w_shift[1]+160)]
         assert img_stack1.shape == img_stack2.shape == (
             4, 210, 160), f"shape is {img_stack2.shape}, input shape was: {obs_padded.shape} w: {w_shift[1]}, h: {h_shift[1]}"
         return img_stack1, img_stack2
